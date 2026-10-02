@@ -537,6 +537,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLogin"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_login_account" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

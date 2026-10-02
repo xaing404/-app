@@ -8,11 +8,13 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
@@ -20,10 +22,19 @@ import com.tajiduo.attendance.data.AccountStore
 import com.tajiduo.attendance.data.SettingsStore
 import com.tajiduo.attendance.data.StateStore
 import com.tajiduo.attendance.databinding.ActivityMainBinding
+import com.tajiduo.attendance.databinding.DialogLoginBinding
+import com.tajiduo.attendance.login.LoginManager
 import com.tajiduo.attendance.notify.NotificationHelper
 import com.tajiduo.attendance.permission.PermissionHelper
 import com.tajiduo.attendance.schedule.AlarmScheduler
 import com.tajiduo.attendance.service.AttendanceService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,6 +47,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var stateStore: StateStore
     private lateinit var accountStore: AccountStore
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var codeCountdownJob: Job? = null
     private var isRunning = false
 
     private val notificationPermissionLauncher =
@@ -83,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         catch (_: Exception) {
             // 未注册时忽略
         }
+        scope.cancel()
         super.onDestroy()
     }
 
@@ -115,6 +129,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnSaveSettings.setOnClickListener { saveTextSettings() }
         binding.btnSignNow.setOnClickListener { startRun() }
         binding.btnPermission.setOnClickListener { PermissionHelper.openAutoStartSettings(this) }
+        binding.btnLogin.setOnClickListener { showLoginDialog() }
 
         binding.btnPermNotify.setOnClickListener { onNotifyPermissionClick() }
         binding.btnPermAlarm.setOnClickListener { PermissionHelper.requestExactAlarmPermission(this) }
@@ -224,11 +239,15 @@ class MainActivity : AppCompatActivity() {
         catch (_: Exception) {
             emptyList()
         }
-        if (accounts.isEmpty()) {
-            binding.tvAccount.text = "内置账号读取失败"
+        // 只展示真正带凭据的账号；未配置的占位/空模板不算已登录
+        val configured = accounts.filter {
+            !it.accessToken.isNullOrBlank() || !it.refreshToken.isNullOrBlank()
+        }
+        if (configured.isEmpty()) {
+            binding.tvAccount.text = getString(R.string.account_empty)
             return
         }
-        val lines = accounts.map { account ->
+        val lines = configured.map { account ->
             buildString {
                 append("${account.name}（${account.id}）\n")
                 append("UID：${account.uid}\n")
@@ -283,6 +302,111 @@ class MainActivity : AppCompatActivity() {
             this,
             AttendanceService.buildIntent(this, force = true, killAfter = false),
         )
+    }
+
+    // ---------------- 登录 ----------------
+
+    /** 短信验证码登录：无需 adb 注入凭据，任何人都能用自己的账号上手。 */
+    private fun showLoginDialog() {
+        val dialogBinding = DialogLoginBinding.inflate(layoutInflater)
+        val loginManager = LoginManager(accountStore)
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.login_title)
+            .setView(dialogBinding.root)
+            .setNegativeButton(R.string.dialog_close, null)
+            .create()
+
+        var busy = false
+
+        fun setBusy(value: Boolean) {
+            busy = value
+            dialogBinding.progressLogin.visibility = if (value) View.VISIBLE else View.GONE
+            dialogBinding.btnDoLogin.isEnabled = !value
+        }
+
+        fun showStatus(text: String, isError: Boolean) {
+            dialogBinding.tvLoginStatus.visibility = View.VISIBLE
+            dialogBinding.tvLoginStatus.text = text
+            dialogBinding.tvLoginStatus.setTextColor(
+                ContextCompat.getColor(this, if (isError) R.color.state_bad else R.color.state_ok),
+            )
+        }
+
+        dialogBinding.btnSendCode.setOnClickListener {
+            if (busy) return@setOnClickListener
+            val phone = dialogBinding.etPhone.text?.toString()?.trim().orEmpty()
+            if (phone.length != 11) {
+                showStatus(getString(R.string.login_phone_invalid), true)
+                return@setOnClickListener
+            }
+            setBusy(true)
+            showStatus(getString(R.string.login_sending), false)
+            scope.launch {
+                try {
+                    loginManager.sendCaptcha(phone)
+                    showStatus(getString(R.string.login_sent), false)
+                    startCodeCountdown(dialogBinding.btnSendCode)
+                }
+                catch (error: Exception) {
+                    showStatus(getString(R.string.login_send_failed, error.message.orEmpty()), true)
+                }
+                finally {
+                    setBusy(false)
+                }
+            }
+        }
+
+        dialogBinding.btnDoLogin.setOnClickListener {
+            if (busy) return@setOnClickListener
+            val phone = dialogBinding.etPhone.text?.toString()?.trim().orEmpty()
+            val code = dialogBinding.etCode.text?.toString()?.trim().orEmpty()
+            if (phone.length != 11) {
+                showStatus(getString(R.string.login_phone_invalid), true)
+                return@setOnClickListener
+            }
+            if (code.isBlank()) {
+                showStatus(getString(R.string.login_code_required), true)
+                return@setOnClickListener
+            }
+            setBusy(true)
+            showStatus(getString(R.string.login_logging_in), false)
+            scope.launch {
+                try {
+                    val account = loginManager.login(phone, code)
+                    showStatus(getString(R.string.login_success, account.name), false)
+                    refresh()
+                    Toast.makeText(
+                        this@MainActivity,
+                        getString(R.string.login_success, account.name),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    dialog.dismiss()
+                }
+                catch (error: Exception) {
+                    showStatus(getString(R.string.login_failed, error.message.orEmpty()), true)
+                }
+                finally {
+                    setBusy(false)
+                }
+            }
+        }
+
+        dialog.setOnDismissListener { codeCountdownJob?.cancel() }
+        dialog.show()
+    }
+
+    /** 「获取验证码」按钮的 60 秒重发倒计时。 */
+    private fun startCodeCountdown(button: MaterialButton) {
+        codeCountdownJob?.cancel()
+        codeCountdownJob = scope.launch {
+            for (remaining in 60 downTo 1) {
+                button.isEnabled = false
+                button.text = getString(R.string.login_resend, remaining)
+                delay(1000)
+            }
+            button.isEnabled = true
+            button.text = getString(R.string.login_send_code)
+        }
     }
 
     private fun showTimePicker() {

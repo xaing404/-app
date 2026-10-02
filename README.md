@@ -10,6 +10,7 @@
 
 | 功能 | 说明 |
 |---|---|
+| 📱 验证码登录 | 应用内手机号 + 短信验证码登录，装上就能用自己的账号，无需命令行 |
 | ⏰ 每日定时 | `AlarmManager` 精确闹钟，时间可在 App 内自定义（默认 08:00），开机后自动重排 |
 | 🎮 完整签到 | APP 签到 + 3 个游戏角色签到 + 金币任务（签到/浏览/点赞/分享）+ 云异环时长 |
 | 🔔 结果通知 | 签到结果系统通知，支持 Server 酱 / 自定义 Webhook |
@@ -20,34 +21,51 @@
 
 ## 截图
 
-| 概览与权限引导 | 设置 |
-|---|---|
-| ![概览](docs/screenshot-overview.png) | ![设置](docs/screenshot-settings.png) |
+| 概览与权限引导 | 设置 | 验证码登录 |
+|---|---|---|
+| ![概览](docs/screenshot-overview.png) | ![设置](docs/screenshot-settings.png) | ![登录](docs/screenshot-login.png) |
 
 ---
 
 ## 安装
 
-下载 [dist/tajiduo-attendance-v1.0.1.apk](dist/tajiduo-attendance-v1.0.1.apk) 后：
+下载 [dist/tajiduo-attendance-v1.1.0.apk](dist/tajiduo-attendance-v1.1.0.apk) 后：
 
 ```bash
-adb install -r dist/tajiduo-attendance-v1.0.1.apk
+adb install -r dist/tajiduo-attendance-v1.1.0.apk
 ```
 
 或把 APK 传到手机点击安装。要求 **Android 8.0+**（minSdk 26），targetSdk 34。
 
-安装后请打开 App 一次，按「权限引导」卡片逐项授权。
+安装后打开 App：
+
+1. 在「账号信息」卡片点击 **「登录 / 添加账号」**，用手机号 + 短信验证码登录（见下）
+2. 按「权限引导」卡片逐项授权
 
 ---
 
-## 账号配置（重要）
+## 账号配置
 
-仓库内的 APK 是**脱敏版**：`assets/accounts.json` 为空模板，`assets/credential-key` 为空文件。
-安装后 App 默认**无法签到**，需要注入你自己的账号凭据。
+仓库内的 APK 是**脱敏版**，不含任何账号凭据，安装后需登录你自己的账号。
 
-### 方式一：adb 注入（推荐）
+### 方式一：应用内验证码登录（推荐）
 
-debug 版 APK 支持 `run-as`，可免 root 注入：
+打开 App，在「账号信息」卡片点击 **「登录 / 添加账号」**：
+
+1. 输入手机号 → 点击「获取验证码」（60 秒后可重发）
+2. 填入收到的短信验证码 → 点击「登录」
+
+登录会自动完成整条链路：
+
+```
+短信验证码登录（老虎平台）→ 换取塔吉多会话 → 写入应用私有目录
+```
+
+成功后账号信息立即显示在卡片中，**无需任何命令行操作**。凭据仅保存在应用私有目录，卸载 App 即清除。支持多账号：再次登录会用新账号追加，同一账号登录则覆盖旧记录。
+
+### 方式二：adb 注入（批量 / 离线场景）
+
+debug 版 APK 支持 `run-as`，可免 root 注入现成的凭据文件：
 
 ```bash
 # 1. 先打开 App 一次（让私有目录完成初始化），然后准备好 accounts.json
@@ -65,7 +83,7 @@ adb shell run-as com.tajiduo.attendance cp /data/local/tmp/credential-key files/
 adb shell am force-stop com.tajiduo.attendance
 ```
 
-### 方式二：自行构建
+### 方式三：自行构建
 
 把真实的 `accounts.json`、`credential-key` 放入 `app/src/main/assets/` 后重新构建（见 [构建](#构建)）。
 > 注意：请勿把含真实凭据的版本提交或分发。
@@ -158,6 +176,7 @@ app/src/main/java/com/tajiduo/attendance/
 ├── HistoryAdapter.kt          # 运行历史列表
 ├── data/                      # 账号/状态/设置存储
 ├── net/                       # 协议、签名、加密、接口封装
+├── login/                     # 短信验证码登录
 ├── runner/                    # 签到执行器（核心流程）
 ├── schedule/                  # 闹钟调度与开机重排
 ├── service/                   # 前台服务
@@ -166,6 +185,12 @@ app/src/main/java/com/tajiduo/attendance/
 ```
 
 ## 更新记录
+
+### v1.1.0
+
+- **新增应用内验证码登录**：`MainActivity` 的「账号信息」卡片新增「登录 / 添加账号」按钮，手机号 + 短信验证码即可登录，无需 adb 注入凭据，任何人都能轻松上手。流程：`sendCaptcha` → `loginWithCaptcha` → `userCenterLogin` → 写入私有目录。
+- 账号卡改为只展示已配置凭据的账号；未登录时给出引导文案，不再显示空模板。
+- 支持多账号：新账号追加、同账号覆盖。
 
 ### v1.0.1
 
