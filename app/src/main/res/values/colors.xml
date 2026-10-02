@@ -2,7 +2,7 @@
 <resources>
     <color name="brand">#1B7F4B</color>
     <color name="brand_dark">#0F5132</color>
-    <color name="ic_launcher_background">#0F5132</color>
+    <color name="ic_launcher_background">#A22B3E</color>
 
     <color name="bg_page">#F5F6F8</color>
     <color name="bg_card">#FFFFFF</color>

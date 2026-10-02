@@ -29,10 +29,10 @@
 
 ## 安装
 
-下载 [dist/tajiduo-attendance-v1.1.0.apk](dist/tajiduo-attendance-v1.1.0.apk) 后：
+下载 [dist/tajiduo-attendance-v1.1.1.apk](dist/tajiduo-attendance-v1.1.1.apk) 后：
 
 ```bash
-adb install -r dist/tajiduo-attendance-v1.1.0.apk
+adb install -r dist/tajiduo-attendance-v1.1.1.apk
 ```
 
 或把 APK 传到手机点击安装。要求 **Android 8.0+**（minSdk 26），targetSdk 34。
@@ -185,6 +185,10 @@ app/src/main/java/com/tajiduo/attendance/
 ```
 
 ## 更新记录
+
+### v1.1.1
+
+- **更换应用图标**：使用《异环》角色壁纸作为图标，按 1:1 正方形构图以脸部为视觉中心裁切，保留发饰与爱心元素、裁掉文字 logo；生成全套自适应图标（adaptive icon）与各密度位图（mdpi~xxxhdpi），背景色取角色服装绯红 `#A22B3E`。
 
 ### v1.1.0
 
