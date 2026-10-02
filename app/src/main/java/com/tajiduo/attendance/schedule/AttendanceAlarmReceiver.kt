@@ -3,6 +3,7 @@ package com.tajiduo.attendance.schedule
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.tajiduo.attendance.service.AttendanceService
 
@@ -10,10 +11,15 @@ import com.tajiduo.attendance.service.AttendanceService
 class AttendanceAlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        Log.i(TAG, "alarm fired at ${System.currentTimeMillis()}")
         AlarmScheduler.scheduleFromSettings(context)
         ContextCompat.startForegroundService(
             context,
             AttendanceService.buildIntent(context, force = false, killAfter = true),
         )
+    }
+
+    private companion object {
+        const val TAG = "TajiduoAttendance"
     }
 }

@@ -41,6 +41,7 @@
 
         <receiver
             android:name=".schedule.BootReceiver"
+            android:directBootAware="true"
             android:exported="false"
             android:enabled="true">
             <intent-filter>

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.ServiceCompat
 import com.tajiduo.attendance.data.AccountStore
 import com.tajiduo.attendance.data.SettingsStore
@@ -44,6 +45,7 @@ class AttendanceService : Service() {
         running = true
         val force = intent?.getBooleanExtra(EXTRA_FORCE, false) ?: false
         val killAfter = intent?.getBooleanExtra(EXTRA_KILL_AFTER, false) ?: false
+        Log.i(TAG, "service start: force=$force killAfter=$killAfter")
 
         val helper = NotificationHelper(this)
         helper.ensureChannel()
@@ -83,6 +85,11 @@ class AttendanceService : Service() {
             summary = result.summary
             success = result.failedCount == 0
             settings.lastRunDate = shanghaiDate()
+            Log.i(
+                TAG,
+                "run finished: success=$success successCount=${result.successCount} " +
+                    "failedCount=${result.failedCount} skippedCount=${result.skippedCount}",
+            )
             if (settings.notifyEnabled) {
                 NotificationHelper(this).notifyResult(summary, success)
             }
@@ -91,6 +98,7 @@ class AttendanceService : Service() {
         catch (error: Exception) {
             summary = "签到执行失败：${error.message}"
             success = false
+            Log.e(TAG, "run failed", error)
             try {
                 NotificationHelper(this).notifyError(summary)
             }
@@ -104,6 +112,7 @@ class AttendanceService : Service() {
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             stopSelf()
             if (killAfter && settings.killAfterRun) {
+                Log.i(TAG, "kill process for power saving")
                 android.os.Process.killProcess(android.os.Process.myPid())
             }
         }
@@ -155,6 +164,7 @@ class AttendanceService : Service() {
             .format(Date())
 
     companion object {
+        private const val TAG = "TajiduoAttendance"
         const val EXTRA_FORCE = "force"
         const val EXTRA_KILL_AFTER = "kill_after"
         const val ACTION_RUN_FINISHED = "com.tajiduo.attendance.action.RUN_FINISHED"

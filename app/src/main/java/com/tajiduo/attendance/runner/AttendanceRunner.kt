@@ -1,5 +1,6 @@
 package com.tajiduo.attendance.runner
 
+import android.util.Log
 import com.tajiduo.attendance.data.Account
 import com.tajiduo.attendance.data.AccountRunSummary
 import com.tajiduo.attendance.data.AccountStore
@@ -58,6 +59,11 @@ class AttendanceRunner(
         val results = ArrayList<AccountRunResult>(accounts.size)
         for (account in accounts) {
             results.add(runSingleAccount(account, runDate, credentialKey, options))
+        }
+        results.forEach { item ->
+            val state = item.summary.status
+            val detail = item.summary.error ?: item.summary.skippedReason ?: ""
+            Log.i(TAG, "account ${item.summary.id}: $state $detail")
         }
 
         val updatedAccounts = results.map { it.updatedAccount }
@@ -603,6 +609,7 @@ class AttendanceRunner(
     private data class GameSigninMark(val alreadySigned: Boolean)
 
     private companion object {
+        const val TAG = "TajiduoAttendance"
         val TAYGEDO_GAME_IDS = listOf("1256", "1257", "1289")
         val ALREADY_SIGNED_REGEX = Regex("已.*签到|签到.*过|重复签到|already.*sign", RegexOption.IGNORE_CASE)
         val AUTH_ERROR_REGEX = Regex(

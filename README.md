@@ -28,10 +28,10 @@
 
 ## 安装
 
-下载 [dist/tajiduo-attendance-v1.0.0.apk](dist/tajiduo-attendance-v1.0.0.apk) 后：
+下载 [dist/tajiduo-attendance-v1.0.1.apk](dist/tajiduo-attendance-v1.0.1.apk) 后：
 
 ```bash
-adb install -r dist/tajiduo-attendance-v1.0.0.apk
+adb install -r dist/tajiduo-attendance-v1.0.1.apk
 ```
 
 或把 APK 传到手机点击安装。要求 **Android 8.0+**（minSdk 26），targetSdk 34。
@@ -165,12 +165,25 @@ app/src/main/java/com/tajiduo/attendance/
 └── permission/                # 权限引导
 ```
 
-## 已知问题
+## 更新记录
 
-1. **定时触发可能延迟数分钟**：`setExactAndAllowWhileIdle` 在部分厂商 ROM（如 ColorOS）上会被电源策略改写投放窗口。实测目标 15:39 实际 15:41:42 触发（窗口 3 分钟；更长提前量下窗口上限约 1 小时）。
-   → 缓解：开启自启动 + 电池白名单；若需严格准点可改用 `setAlarmClock()`。
-2. **定时任务结束后的状态写入存在竞态**：`SharedPreferences.apply()` 为异步刷盘，而任务完成后立即 `Process.killProcess()`，可能丢失最后一次状态写入（表现为 App 内「结果」卡片显示上一次的内容；手动运行不受影响）。
-3. 应用未输出 logcat 日志，排障需依赖 App 内历史记录。
+### v1.0.1
+
+- **修复定时不准点**：改用 `setAlarmClock()`（系统唯一保证准点投递的接口，不受 Doze 与厂商电源策略窗口改写）。实测触发偏差由**分钟级降到毫秒级**（目标 16:30:00，实际 16:30:00.062）。
+  副作用：状态栏会出现闹钟图标，点击可回到本应用。
+- **修复定时运行后状态丢失**：`markSigned()` / `saveSummary()` / `lastRunDate` 由 `apply()`（异步刷盘）改为 `commit()`（同步落盘）。原实现中任务结束后会立即自杀进程，异步写入来不及刷盘就被丢弃，导致**去重键失效**、App 内结果展示陈旧。
+- **修复 UI 数据源不一致**：结果卡改为优先读取 `runs.json` 最新记录（同步写入可靠），仅在历史缺失时回退 `last-summary`。
+- **修复开机锁屏期不重排闹钟**：`BootReceiver` 增加 `android:directBootAware="true"`，`SettingsStore` 迁移到设备加密存储（direct boot），重启后未解锁也能读到签到时间。
+- 新增关键路径日志（TAG: `TajiduoAttendance`），便于排障：闹钟排程/触发、服务启停、每账号结果、杀进程。
+
+### v1.0.0
+
+- 首个版本：定时签到、完整签到流程、结果通知、省电自退、权限引导、内置 UI。
+
+## 已知限制
+
+1. 使用 `setAlarmClock()` 会在**状态栏常驻闹钟图标**，这是为保证准点投递所做的取舍。
+2. 国内 ROM 仍需手动开启「自启动」与「电池/后台运行白名单」，否则后台服务可能被拦截。
 
 ## 免责声明
 

@@ -211,7 +211,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateDetail() {
-        val summary = stateStore.lastSummary()
+        // 优先读 runs.json 的最新记录（同步写入、可靠），
+        // 仅在历史缺失时回退到 last-summary，避免与状态卡出现数据源不一致
+        val summary = stateStore.lastRecord()?.summary ?: stateStore.lastSummary()
         binding.tvDetail.text = summary.ifBlank { getString(R.string.no_detail) }
     }
 

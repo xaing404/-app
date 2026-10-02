@@ -5,7 +5,10 @@ import android.content.Context
 /** 用户设置（默认值与 TS 端 runtime 配置保持一致）。 */
 class SettingsStore(context: Context) {
 
-    private val prefs = context.getSharedPreferences("tajiduo_settings", Context.MODE_PRIVATE)
+    // 使用设备加密存储（direct boot）：手机重启后即使还停留在锁屏未解锁，
+    // BootReceiver 也能读到签到时间并重排闹钟。
+    private val prefs = context.createDeviceProtectedStorageContext()
+        .getSharedPreferences("tajiduo_settings", Context.MODE_PRIVATE)
 
     var hour: Int
         get() = prefs.getInt("hour", 8)
@@ -48,5 +51,8 @@ class SettingsStore(context: Context) {
     /** 最近一次成功运行的日期（yyyy-MM-dd），用于 UI 提示。 */
     var lastRunDate: String
         get() = prefs.getString("last_run_date", "") ?: ""
-        set(value) = prefs.edit().putString("last_run_date", value).apply()
+        // 该字段在服务收尾时写入、紧随其后就是自杀进程，必须同步落盘
+        set(value) {
+            prefs.edit().putString("last_run_date", value).commit()
+        }
 }

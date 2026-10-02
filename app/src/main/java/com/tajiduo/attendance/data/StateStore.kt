@@ -24,13 +24,16 @@ class StateStore(private val context: Context) {
             put("date", date)
             put("updatedAt", System.currentTimeMillis())
         }
-        prefs.edit().putString(stateKey(accountId, date), payload.toString()).apply()
+        // 必须用 commit() 同步落盘：定时任务结束后会立即自杀进程，
+        // apply() 的异步写入来不及刷盘就会丢失（导致去重键失效、当晚重复签到）。
+        prefs.edit().putString(stateKey(accountId, date), payload.toString()).commit()
     }
 
     fun lastSummary(): String = prefs.getString("last-summary", "") ?: ""
 
     fun saveSummary(summary: String) {
-        prefs.edit().putString("last-summary", summary).apply()
+        // 同上：同步落盘，否则定时运行的摘要会被自杀进程吞掉
+        prefs.edit().putString("last-summary", summary).commit()
     }
 
     fun lastRecord(): RunRecord? = loadRuns().firstOrNull()
