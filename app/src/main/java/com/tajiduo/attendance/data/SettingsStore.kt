@@ -48,6 +48,28 @@ class SettingsStore(context: Context) {
         get() = prefs.getString("notification_urls", "") ?: ""
         set(value) = prefs.edit().putString("notification_urls", value).apply()
 
+    // ---------------- 邮件通知（QQ 邮箱） ----------------
+
+    /** 发件 QQ 邮箱（SMTP 认证账号）。 */
+    var emailSender: String
+        get() = prefs.getString("email_sender", "") ?: ""
+        // 授权码类配置需确保落盘，避免进程被清理时丢失
+        set(value) { prefs.edit().putString("email_sender", value).commit() }
+
+    /** SMTP 授权码（非 QQ 密码）。 */
+    var emailAuthCode: String
+        get() = prefs.getString("email_auth_code", "") ?: ""
+        set(value) { prefs.edit().putString("email_auth_code", value).commit() }
+
+    /** 收件人邮箱，留空则发送到发件邮箱。 */
+    var emailRecipient: String
+        get() = prefs.getString("email_recipient", "") ?: ""
+        set(value) { prefs.edit().putString("email_recipient", value).commit() }
+
+    /** 邮件通知是否已配置完整（发件邮箱 + 授权码均非空即启用）。 */
+    val emailConfigured: Boolean
+        get() = emailSender.isNotBlank() && emailAuthCode.isNotBlank()
+
     /** 最近一次成功运行的日期（yyyy-MM-dd），用于 UI 提示。 */
     var lastRunDate: String
         get() = prefs.getString("last_run_date", "") ?: ""

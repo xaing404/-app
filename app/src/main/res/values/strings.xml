@@ -36,6 +36,14 @@
     <string name="setting_max_retries">失败重试次数</string>
     <string name="setting_webhook">通知 Webhook（可选，逗号分隔）</string>
     <string name="setting_webhook_hint">留空则仅使用系统通知</string>
+    <string name="setting_email_section">邮件通知（QQ 邮箱）</string>
+    <string name="setting_email_sender">发件 QQ 邮箱</string>
+    <string name="setting_email_auth_code">SMTP 授权码</string>
+    <string name="setting_email_recipient">收件人邮箱</string>
+    <string name="setting_email_sender_hint">用于登录 smtp.qq.com 的完整 QQ 邮箱</string>
+    <string name="setting_email_auth_code_hint">QQ 邮箱网页版 → 设置 → 账户 → 开启 POP3/SMTP 后生成的 16 位授权码（非 QQ 密码）</string>
+    <string name="setting_email_recipient_hint">留空则发送到发件邮箱</string>
+    <string name="toast_email_incomplete">邮件通知未生效：请同时填写发件邮箱与授权码</string>
     <string name="btn_save_settings">保存设置</string>
     <string name="toast_saved">设置已保存</string>
     <string name="dialog_share_platform">选择分享平台</string>

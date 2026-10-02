@@ -11,8 +11,8 @@ android {
         applicationId = "com.tajiduo.attendance"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.1"
+        versionCode = 5
+        versionName = "1.2.0"
     }
 
     buildTypes {
@@ -41,6 +41,9 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // JavaMail（android-mail/android-activation）携带重复的 META-INF 资源，按需排除
+            excludes += "/META-INF/NOTICE.md"
+            excludes += "/META-INF/LICENSE.md"
         }
     }
 }
@@ -54,4 +57,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    // 邮件通知：JavaMail for Android（QQ 邮箱 SMTP over SSL）
+    implementation("com.sun.mail:android-mail:1.6.7")
+    implementation("com.sun.mail:android-activation:1.6.7")
 }

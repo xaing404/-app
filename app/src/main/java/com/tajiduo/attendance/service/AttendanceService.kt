@@ -11,6 +11,7 @@ import androidx.core.app.ServiceCompat
 import com.tajiduo.attendance.data.AccountStore
 import com.tajiduo.attendance.data.SettingsStore
 import com.tajiduo.attendance.data.StateStore
+import com.tajiduo.attendance.notify.EmailNotifier
 import com.tajiduo.attendance.notify.NotificationHelper
 import com.tajiduo.attendance.notify.NotifyWebhook
 import com.tajiduo.attendance.runner.AttendanceRunner
@@ -69,6 +70,7 @@ class AttendanceService : Service() {
 
     private suspend fun execute(force: Boolean, killAfter: Boolean) {
         val settings = SettingsStore(this)
+        val runStartedAt = System.currentTimeMillis()
         var summary = "签到未执行"
         var success = false
         try {
@@ -94,6 +96,15 @@ class AttendanceService : Service() {
                 NotificationHelper(this).notifyResult(summary, success)
             }
             sendWebhook(settings, summary)
+            sendEmailSafe(
+                settings = settings,
+                summary = summary,
+                successCount = result.successCount,
+                failedCount = result.failedCount,
+                skippedCount = result.skippedCount,
+                startedAt = result.startedAt,
+                finishedAt = result.finishedAt,
+            )
         }
         catch (error: Exception) {
             summary = "签到执行失败：${error.message}"
@@ -105,6 +116,15 @@ class AttendanceService : Service() {
             catch (_: Exception) {
                 // 忽略通知失败
             }
+            sendEmailSafe(
+                settings = settings,
+                summary = summary,
+                successCount = 0,
+                failedCount = 1,
+                skippedCount = 0,
+                startedAt = runStartedAt,
+                finishedAt = System.currentTimeMillis(),
+            )
         }
         finally {
             broadcastFinished(summary, success)
@@ -131,6 +151,57 @@ class AttendanceService : Service() {
             // 可选功能，失败不影响主流程
         }
     }
+
+    /**
+     * 邮件通知（QQ 邮箱）：同步发送，位于杀进程之前完成；
+     * 未配置时静默跳过，失败仅记录日志，不影响签到主流程与日志脱敏。
+     */
+    private fun sendEmailSafe(
+        settings: SettingsStore,
+        summary: String,
+        successCount: Int,
+        failedCount: Int,
+        skippedCount: Int,
+        startedAt: Long,
+        finishedAt: Long,
+    ) {
+        if (!settings.emailConfigured) return
+        val recipient = settings.emailRecipient.ifBlank { settings.emailSender }
+        val status = when {
+            failedCount > 0 -> "失败"
+            successCount > 0 -> "成功"
+            else -> "跳过"
+        }
+        val subject = "塔吉多签到 | $status | ${formatEmailTime(startedAt)}"
+        val content = buildString {
+            appendLine("塔吉多每日签到结果（自动发送）")
+            appendLine()
+            appendLine("签到开始：${formatEmailTime(startedAt, withSeconds = true)}")
+            appendLine("签到结束：${formatEmailTime(finishedAt, withSeconds = true)}")
+            appendLine("结果状态：$status（成功 $successCount / 失败 $failedCount / 跳过 $skippedCount）")
+            appendLine()
+            appendLine("——————————")
+            appendLine(summary)
+            appendLine("——————————")
+            append("本邮件由「塔吉多签到」App 自动发送，请勿直接回复。")
+        }
+        try {
+            val errors = EmailNotifier.send(settings.emailSender, settings.emailAuthCode, recipient, subject, content)
+            if (errors.isEmpty()) {
+                Log.i(TAG, "email sent")
+            } else {
+                Log.e(TAG, "email send failed: ${errors.joinToString("; ")}")
+            }
+        }
+        catch (error: Exception) {
+            Log.e(TAG, "email send failed: ${error.message}")
+        }
+    }
+
+    private fun formatEmailTime(timestamp: Long, withSeconds: Boolean = false): String =
+        SimpleDateFormat(if (withSeconds) "yyyy-MM-dd HH:mm:ss" else "yyyy-MM-dd HH:mm", Locale.US)
+            .apply { timeZone = TimeZone.getTimeZone("Asia/Shanghai") }
+            .format(Date(timestamp))
 
     private fun broadcastFinished(summary: String, success: Boolean) {
         val intent = Intent(ACTION_RUN_FINISHED).apply {

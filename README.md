@@ -14,6 +14,7 @@
 | ⏰ 每日定时 | `AlarmManager` 精确闹钟，时间可在 App 内自定义（默认 08:00），开机后自动重排 |
 | 🎮 完整签到 | APP 签到 + 3 个游戏角色签到 + 金币任务（签到/浏览/点赞/分享）+ 云异环时长 |
 | 🔔 结果通知 | 签到结果系统通知，支持 Server 酱 / 自定义 Webhook |
+| 📧 邮件通知 | 签到完成后自动将结果（含签到时间、成功/失败/跳过）发送到 QQ 邮箱 |
 | 🔋 省电自退 | 定时任务完成后自我了结进程并释放 WakeLock，避免后台耗电 |
 | 🔐 权限引导 | 通知权限 / 精确闹钟 / 电池优化白名单 / 厂商自启动，一键跳转 |
 | 📊 内置 UI | 签到状态、获得奖励、运行历史、签到时间等设置 |
@@ -29,10 +30,10 @@
 
 ## 安装
 
-下载 [dist/tajiduo-attendance-v1.1.1.apk](dist/tajiduo-attendance-v1.1.1.apk) 后：
+下载 [dist/tajiduo-attendance-v1.2.0.apk](dist/tajiduo-attendance-v1.2.0.apk) 后：
 
 ```bash
-adb install -r dist/tajiduo-attendance-v1.1.1.apk
+adb install -r dist/tajiduo-attendance-v1.2.0.apk
 ```
 
 或把 APK 传到手机点击安装。要求 **Android 8.0+**（minSdk 26），targetSdk 34。
@@ -130,6 +131,27 @@ adb shell am force-stop com.tajiduo.attendance
 
 ---
 
+## 邮件通知（QQ 邮箱）
+
+签到完成后可自动把结果发送到 QQ 邮箱：每日一封，含**签到开始/结束时间**、**结果状态（成功 / 失败 / 跳过）**与完整账号明细。
+
+配置步骤：
+
+1. **开启 QQ 邮箱 SMTP 服务**：登录网页版 QQ 邮箱 → 设置 → 账户 → 开启「POP3/SMTP 服务」（需短信验证）→ 生成 **16 位授权码**（只展示一次，请及时保存）。
+2. **在 App 内填写**：打开 App → 设置卡片 → 「邮件通知（QQ 邮箱）」：
+   - 发件 QQ 邮箱：你的完整 QQ 邮箱地址（如 `xxxx@qq.com`）
+   - SMTP 授权码：上一步生成的授权码（**不是** QQ 登录密码）
+   - 收件人邮箱：留空则发送到发件邮箱
+3. 点击「保存设置」，再点「立即签到」即可收到测试邮件。
+
+说明：
+
+- 邮件通过 `smtp.qq.com:465`（SSL 加密）发送；授权码只保存在应用私有存储中，不会写入源码或提交仓库，怀疑泄露时可在 QQ 邮箱中删除并重新生成。
+- 未配置时自动跳过；发送失败不影响签到主流程，仅记录日志（TAG `TajiduoAttendance`）。
+- 发送为同步执行、15 秒超时，位于「完成后自动退出进程」之前，不会被省电自退截断。
+
+---
+
 ## 权限说明
 
 | 权限 | 用途 |
@@ -165,7 +187,7 @@ gradlew.bat :app:assembleDebug
 
 - **语言/UI**：Kotlin + XML Views + Material Components
 - **构建**：Gradle 8.7 + AGP 8.5.2 + Kotlin 1.9.24，minSdk 26 / targetSdk 34
-- **网络**：OkHttp 4.12.0｜**并发**：kotlinx-coroutines
+- **网络**：OkHttp 4.12.0｜**并发**：kotlinx-coroutines｜**邮件**：JavaMail for Android 1.6.7
 - **加密**：BouncyCastle（scrypt）、AES-128-ECB（签名）、AES-256-GCM（密码）
 
 ## 项目结构
@@ -180,11 +202,18 @@ app/src/main/java/com/tajiduo/attendance/
 ├── runner/                    # 签到执行器（核心流程）
 ├── schedule/                  # 闹钟调度与开机重排
 ├── service/                   # 前台服务
-├── notify/                    # 系统通知与 Webhook
+├── notify/                    # 系统通知、Webhook 与邮件
 └── permission/                # 权限引导
 ```
 
 ## 更新记录
+
+### v1.2.0
+
+- **新增邮件通知（QQ 邮箱）**：签到完成后自动将结果发送到 QQ 邮箱，正文含签到开始/结束时间、结果状态（成功/失败/跳过）与完整账号明细；通过 `smtp.qq.com:465`（SSL）发送，授权码仅存应用私有存储（`commit()` 落盘）。
+- 设置卡片新增「邮件通知（QQ 邮箱）」分组：发件邮箱 / SMTP 授权码 / 收件人（留空发给自己），发件与授权码必须成对填写才会生效。
+- 发送时机位于杀进程之前（同步发送、15 秒超时），邮件失败仅记录日志，不影响签到主流程。
+- 新增依赖 JavaMail for Android（`com.sun.mail:android-mail` / `android-activation` 1.6.7）。
 
 ### v1.1.1
 

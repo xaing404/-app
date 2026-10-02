@@ -112,6 +112,9 @@ class MainActivity : AppCompatActivity() {
         binding.tvSharePlatform.text = settings.sharePlatform
         binding.etMaxRetries.setText(settings.maxRetries.toString())
         binding.etWebhook.setText(settings.notificationUrls)
+        binding.etEmailSender.setText(settings.emailSender)
+        binding.etEmailAuthCode.setText(settings.emailAuthCode)
+        binding.etEmailRecipient.setText(settings.emailRecipient)
 
         binding.rowSignTime.setOnClickListener { showTimePicker() }
         binding.rowSharePlatform.setOnClickListener { showPlatformDialog() }
@@ -444,7 +447,15 @@ class MainActivity : AppCompatActivity() {
         val retries = binding.etMaxRetries.text?.toString()?.trim()?.toIntOrNull() ?: settings.maxRetries
         settings.maxRetries = retries.coerceIn(1, 10)
         settings.notificationUrls = binding.etWebhook.text?.toString()?.trim() ?: ""
+        settings.emailSender = binding.etEmailSender.text?.toString()?.trim() ?: ""
+        settings.emailAuthCode = binding.etEmailAuthCode.text?.toString()?.trim() ?: ""
+        settings.emailRecipient = binding.etEmailRecipient.text?.toString()?.trim() ?: ""
         binding.etMaxRetries.setText(settings.maxRetries.toString())
+        // 发件邮箱与授权码必须成对填写，否则邮件通知不会生效（其余设置照常保存）
+        if (settings.emailSender.isBlank() != settings.emailAuthCode.isBlank()) {
+            Toast.makeText(this, R.string.toast_email_incomplete, Toast.LENGTH_LONG).show()
+            return
+        }
         Toast.makeText(this, R.string.toast_saved, Toast.LENGTH_SHORT).show()
     }
 
