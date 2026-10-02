@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#1B7F4B</color>
+    <color name="brand_dark">#0F5132</color>
+    <color name="ic_launcher_background">#0F5132</color>
+
+    <color name="bg_page">#F5F6F8</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="divider">#E7E9ED</color>
+
+    <color name="text_primary">#1F2328</color>
+    <color name="text_secondary">#5B6470</color>
+    <color name="text_muted">#6B7280</color>
+
+    <color name="state_unknown">#9AA0A6</color>
+    <color name="state_ok">#2E7D32</color>
+    <color name="state_warn">#EF6C00</color>
+    <color name="state_bad">#C62828</color>
+
+    <color name="status_ok">#2E7D32</color>
+    <color name="status_warn">#EF6C00</color>
+    <color name="status_bad">#C62828</color>
+</resources>

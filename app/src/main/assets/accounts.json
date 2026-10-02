@@ -1,0 +1,17 @@
+[
+  {
+    "id": "main",
+    "name": "示例账号",
+    "uid": "",
+    "deviceId": "",
+    "refreshToken": "",
+    "accessToken": "",
+    "openudid": "",
+    "vendorid": "",
+    "laohuToken": "",
+    "laohuUserId": "",
+    "phone": "",
+    "roleId": "",
+    "roleName": ""
+  }
+]

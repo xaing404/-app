@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">塔吉多签到</string>
+
+    <!-- 概览 -->
+    <string name="today_status_label">当前状态</string>
+    <string name="status_unknown">未知</string>
+    <string name="status_success">签到成功</string>
+    <string name="status_failed">签到失败</string>
+    <string name="status_skipped">今日已跳过</string>
+    <string name="status_running">正在签到…</string>
+    <string name="btn_sign_now">立即签到</string>
+    <string name="btn_permission">权限引导</string>
+
+    <!-- 权限 -->
+    <string name="section_permission">权限引导</string>
+    <string name="permission_hint_missing">有权限未开启，可能导致定时签到无法触发，请逐项授权</string>
+    <string name="permission_hint_ok">权限已就绪，定时签到可正常工作</string>
+    <string name="perm_notify">通知权限</string>
+    <string name="perm_alarm">精确闹钟</string>
+    <string name="perm_battery">电池优化白名单</string>
+    <string name="perm_autostart">自启动权限</string>
+    <string name="btn_go_settings">前往设置</string>
+    <string name="state_granted">已开启</string>
+    <string name="state_denied">未开启</string>
+    <string name="state_unknown_perm">无法确定</string>
+
+    <!-- 设置 -->
+    <string name="section_settings">设置</string>
+    <string name="setting_sign_time">签到时间</string>
+    <string name="setting_coin_tasks">金币任务（浏览 / 点赞 / 分享）</string>
+    <string name="setting_cloud_duration">云异环时长</string>
+    <string name="setting_kill_after">完成后自动退出进程（省电）</string>
+    <string name="setting_notify">完成后发送通知</string>
+    <string name="setting_share_platform">分享平台</string>
+    <string name="setting_max_retries">失败重试次数</string>
+    <string name="setting_webhook">通知 Webhook（可选，逗号分隔）</string>
+    <string name="setting_webhook_hint">留空则仅使用系统通知</string>
+    <string name="btn_save_settings">保存设置</string>
+    <string name="toast_saved">设置已保存</string>
+    <string name="dialog_share_platform">选择分享平台</string>
+
+    <!-- 结果 -->
+    <string name="section_today_detail">本次 / 上次结果</string>
+    <string name="no_detail">暂无签到记录，点击「立即签到」试试</string>
+    <string name="section_account">账号信息</string>
+
+    <!-- 历史 -->
+    <string name="section_history">历史记录</string>
+    <string name="empty_history">暂无历史记录</string>
+    <string name="history_dialog_title">完整签到结果</string>
+    <string name="dialog_close">关闭</string>
+</resources>

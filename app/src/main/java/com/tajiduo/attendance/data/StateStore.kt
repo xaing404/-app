@@ -1,0 +1,60 @@
+package com.tajiduo.attendance.data
+
+import android.content.Context
+import org.json.JSONObject
+import java.io.File
+
+/**
+ * 运行状态存储：按“账号 + 日期”去重，保存最近运行记录。
+ * 去重键与 TS 端一致：attendance:<accountId>:<yyyy-MM-dd>（Asia/Shanghai）。
+ */
+class StateStore(private val context: Context) {
+
+    private val prefs = context.getSharedPreferences("tajiduo_state", Context.MODE_PRIVATE)
+    private val runsFile = File(context.filesDir, "runs.json")
+
+    fun isSignedToday(accountId: String, date: String): Boolean =
+        prefs.contains(stateKey(accountId, date))
+
+    fun markSigned(accountId: String, accountName: String, date: String) {
+        val payload = JSONObject().apply {
+            put("status", "success")
+            put("accountId", accountId)
+            put("accountName", accountName)
+            put("date", date)
+            put("updatedAt", System.currentTimeMillis())
+        }
+        prefs.edit().putString(stateKey(accountId, date), payload.toString()).apply()
+    }
+
+    fun lastSummary(): String = prefs.getString("last-summary", "") ?: ""
+
+    fun saveSummary(summary: String) {
+        prefs.edit().putString("last-summary", summary).apply()
+    }
+
+    fun lastRecord(): RunRecord? = loadRuns().firstOrNull()
+
+    fun appendRun(record: RunRecord) {
+        val records = loadRuns().toMutableList()
+        records.add(0, record)
+        val trimmed = records.take(MAX_RECORDS)
+        runsFile.writeText(Json.runsToJson(trimmed), Charsets.UTF_8)
+    }
+
+    fun loadRuns(): List<RunRecord> {
+        if (!runsFile.exists()) return emptyList()
+        return try {
+            Json.runsFromJson(runsFile.readText(Charsets.UTF_8))
+        }
+        catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun stateKey(accountId: String, date: String) = "attendance:$accountId:$date"
+
+    private companion object {
+        const val MAX_RECORDS = 30
+    }
+}
